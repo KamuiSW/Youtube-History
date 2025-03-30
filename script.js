@@ -13,10 +13,8 @@ let dailyTimelineChart = null;
 let hourlyDistributionChart = null;
 let channelDistributionChart = null;
 
-// Google API configuration
-const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
-const YOUTUBE_API_KEY = 'YOUR_YOUTUBE_API_KEY';
-const SCOPES = 'https://www.googleapis.com/auth/youtube.readonly';
+// Set Google Client ID from config
+document.querySelector('meta[name="google-signin-client_id"]').content = config.GOOGLE_CLIENT_ID;
 
 // Loading state
 function setLoading(isLoading) {
@@ -276,11 +274,11 @@ function calculateStats(data) {
         
         // Count channels
         stats.channelCounts[channel] = (stats.channelCounts[channel] || 0) + 1;
-        
+
         // Parse time and update hourly distribution
         const date = new Date(item.time);
         stats.hourlyDistribution[date.getHours()]++;
-        
+
         // Update daily timeline
         const dateKey = date.toISOString().split('T')[0];
         stats.dailyTimeline[dateKey] = (stats.dailyTimeline[dateKey] || 0) + 1;
@@ -299,20 +297,17 @@ function updateDashboard(stats) {
     document.getElementById('totalTime').textContent = `${Math.round(stats.totalTime / 60)} hours`;
     
     // Find top channel
-    const topChannel = Object.entries(stats.channelCounts)
-        .sort(([,a], [,b]) => b - a)[0];
+    const topChannels = Object.entries(stats.channelCounts)
+        .sort(([,a], [,b]) => b - a);
+    const topChannel = topChannels[0];
     document.getElementById('topChannel').textContent = topChannel ? topChannel[0] : 'N/A';
-    
-    // Find busiest hour
-    const busiestHour = stats.hourlyDistribution.indexOf(Math.max(...stats.hourlyDistribution));
-    document.getElementById('busiestHour').textContent = `${busiestHour}:00`;
 
     // Update charts
-    updateCharts(stats);
+    updateCharts(stats, topChannels);
 }
 
 // Update charts with data
-function updateCharts(stats) {
+function updateCharts(stats, topChannels) {
     // Daily Timeline Chart
     const dailyData = Object.entries(stats.dailyTimeline)
         .sort(([a], [b]) => a.localeCompare(b));
@@ -326,12 +321,9 @@ function updateCharts(stats) {
     hourlyDistributionChart.update();
 
     // Channel Distribution Chart
-    const topChannels = Object.entries(stats.channelCounts)
-        .sort(([,a], [,b]) => b - a)
-        .slice(0, 5);
-    
-    channelDistributionChart.data.labels = topChannels.map(([channel]) => channel);
-    channelDistributionChart.data.datasets[0].data = topChannels.map(([,count]) => count);
+    const chartChannels = topChannels.slice(0, 5);
+    channelDistributionChart.data.labels = chartChannels.map(([channel]) => channel);
+    channelDistributionChart.data.datasets[0].data = chartChannels.map(([,count]) => count);
     channelDistributionChart.update();
 }
 
@@ -401,6 +393,7 @@ function initializeCharts() {
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 title: {
                     display: true,
@@ -471,4 +464,12 @@ function initializeCharts() {
             }
         }
     });
+}
+
+// Trigger Google Sign-In
+function triggerGoogleSignIn() {
+    const googleSignInButton = document.querySelector('.g-signin2');
+    if (googleSignInButton) {
+        googleSignInButton.click();
+    }
 } 

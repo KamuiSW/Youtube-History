@@ -8,13 +8,14 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Google Sign-In API -->
     <script src="https://apis.google.com/js/platform.js" async defer></script>
-    <meta name="google-signin-client_id" content="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com">
+    <script src="config.js"></script>
+    <meta name="google-signin-client_id" content="">
 </head>
 <body>
     <div class="container">
         <header>
             <h1>YouTube History Analyzer</h1>
-            <p>Upload your YouTube history data to analyze your viewing habits</p>
+            <p>Upload your YouTube history data to analyze your viewing habits :D</p>
         </header>
 
         <main>
@@ -37,7 +38,11 @@
                             <div class="upload-option">
                                 <h3>Sign in with Google</h3>
                                 <p>Connect your Google account to analyze your history directly</p>
-                                <div class="g-signin2" data-onsuccess="onGoogleSignIn"></div>
+                                <button class="google-sign-in-button" onclick="triggerGoogleSignIn()">
+                                    <img src="https://www.google.com/favicon.ico" alt="Google Logo" class="google-icon">
+                                    Sign in with Google
+                                </button>
+                                <div class="g-signin2" data-onsuccess="onGoogleSignIn" style="display: none;"></div>
                             </div>
                         </div>
                     </div>
@@ -79,7 +84,7 @@
         </main>
 
         <footer>
-            <p>Your data is processed entirely in your browser. No data is sent to any server.</p>
+            <p>Thgese wstuff are locak, nothing goes uplaoded :D</p>
             <p>Need help? <a href="#" id="helpLink">Learn how to export your YouTube history</a></p>
         </footer>
     </div>

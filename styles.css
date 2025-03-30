@@ -37,13 +37,13 @@ header {
 header h1 {
     color: var(--secondary-color);
     margin-bottom: 0.5rem;
-    font-weight: 600;
-    font-size: 2.5rem;
+    font-weight: 500;
+    font-size: 2rem;
 }
 
 header p {
     color: var(--text-light);
-    font-size: 1.1rem;
+    font-size: 1rem;
 }
 
 .upload-section {
@@ -52,20 +52,11 @@ header p {
 
 .upload-container {
     background-color: var(--card-background);
-    border: 2px dashed var(--border-color);
-    border-radius: 12px;
-    padding: 3rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 2rem;
     text-align: center;
-    transition: all 0.3s ease;
-    cursor: pointer;
-    box-shadow: 0 4px 6px var(--shadow-color);
-}
-
-.upload-container:hover {
-    border-color: var(--primary-color);
-    background-color: #34495e;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px var(--shadow-color);
+    transition: all 0.2s ease;
 }
 
 .upload-content {
@@ -76,9 +67,9 @@ header p {
 }
 
 .youtube-logo {
-    width: 64px;
-    height: 64px;
-    margin-bottom: 1rem;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 0.5rem;
     filter: brightness(1.2);
 }
 
@@ -86,22 +77,21 @@ header p {
     background-color: var(--primary-color);
     color: white;
     border: none;
-    padding: 0.8rem 1.5rem;
-    border-radius: 6px;
+    padding: 0.6rem 1.2rem;
+    border-radius: 4px;
     cursor: pointer;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-    font-weight: 500;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    font-weight: 400;
 }
 
 .upload-button:hover {
     background-color: var(--primary-hover);
-    transform: translateY(-1px);
 }
 
 .file-info {
     color: var(--text-light);
-    font-size: 0.9rem;
+    font-size: 0.8rem;
 }
 
 .dashboard-section {
@@ -110,51 +100,43 @@ header p {
 
 .stats-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
     margin-bottom: 2rem;
 }
 
 .stat-card {
     background-color: var(--card-background);
-    padding: 1.5rem;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px var(--shadow-color);
-    transition: transform 0.3s ease;
+    padding: 1.2rem;
+    border-radius: 8px;
     border: 1px solid var(--border-color);
-}
-
-.stat-card:hover {
-    transform: translateY(-2px);
-    background-color: #34495e;
 }
 
 .stat-card h3 {
     color: var(--text-light);
     margin-bottom: 0.5rem;
-    font-size: 0.9rem;
-    font-weight: 500;
+    font-size: 0.8rem;
+    font-weight: 400;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .stat-card p {
-    font-size: 1.8rem;
-    font-weight: 600;
+    font-size: 1.5rem;
+    font-weight: 500;
     color: var(--secondary-color);
 }
 
 .charts-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-    gap: 1.5rem;
+    gap: 1rem;
 }
 
 .chart-wrapper {
     background-color: var(--card-background);
-    padding: 1.5rem;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px var(--shadow-color);
+    padding: 1.2rem;
+    border-radius: 8px;
     border: 1px solid var(--border-color);
 }
 
@@ -164,44 +146,27 @@ footer {
     padding-top: 2rem;
     border-top: 1px solid var(--border-color);
     color: var(--text-light);
+    font-size: 0.9rem;
 }
 
 footer a {
     color: var(--primary-color);
     text-decoration: none;
-    font-weight: 500;
+    font-weight: 400;
 }
 
 footer a:hover {
     text-decoration: underline;
 }
 
-@media (max-width: 768px) {
-    .container {
-        padding: 1rem;
-    }
-
-    .upload-container {
-        padding: 2rem;
-    }
-
-    .charts-container {
-        grid-template-columns: 1fr;
-    }
-
-    header h1 {
-        font-size: 2rem;
-    }
-}
-
 .loading-spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid var(--border-color);
-    border-top: 3px solid var(--primary-color);
+    width: 32px;
+    height: 32px;
+    border: 2px solid var(--border-color);
+    border-top: 2px solid var(--primary-color);
     border-radius: 50%;
     animation: spin 1s linear infinite;
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
 }
 
 @keyframes spin {
@@ -212,41 +177,77 @@ footer a:hover {
 .upload-options {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 2rem;
-    margin-top: 2rem;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
     width: 100%;
 }
 
 .upload-option {
     background-color: var(--card-background);
-    padding: 1.5rem;
-    border-radius: 12px;
+    padding: 1.2rem;
+    border-radius: 8px;
     border: 1px solid var(--border-color);
-    transition: transform 0.3s ease;
-}
-
-.upload-option:hover {
-    transform: translateY(-2px);
 }
 
 .upload-option h3 {
     color: var(--secondary-color);
-    margin-bottom: 1rem;
-    font-size: 1.2rem;
+    margin-bottom: 0.8rem;
+    font-size: 1rem;
+    font-weight: 500;
 }
 
 .upload-option p {
     color: var(--text-light);
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.4rem;
+    font-size: 0.9rem;
 }
 
-/* Google Sign-In button styling */
-.g-signin2 {
-    margin-top: 1rem;
+/* Google Sign-In Button */
+.google-sign-in-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background-color: #ffffff;
+    color: #757575;
+    border: 1px solid #dadce0;
+    border-radius: 4px;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    font-weight: 400;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    width: 100%;
+    max-width: 220px;
+    margin: 8px auto;
 }
 
-/* Responsive adjustments */
+.google-sign-in-button:hover {
+    background-color: #f8f9fa;
+}
+
+.google-icon {
+    width: 16px;
+    height: 16px;
+}
+
 @media (max-width: 768px) {
+    .container {
+        padding: 1rem;
+    }
+
+    .upload-container {
+        padding: 1.5rem;
+    }
+
+    .charts-container {
+        grid-template-columns: 1fr;
+    }
+
+    header h1 {
+        font-size: 1.8rem;
+    }
+
     .upload-options {
         grid-template-columns: 1fr;
         gap: 1rem;
