@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube History Analyzer</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Sign-In API -->
+    <script src="https://apis.google.com/js/platform.js" async defer></script>
+    <meta name="google-signin-client_id" content="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>YouTube History Analyzer</h1>
+            <p>Upload your YouTube history data to analyze your viewing habits</p>
+        </header>
+
+        <main>
+            <section class="upload-section">
+                <div class="upload-container" id="dropZone">
+                    <input type="file" id="fileInput" accept=".json" hidden>
+                    <div class="upload-content">
+                        <img src="https://www.youtube.com/s/desktop/7c155e84/img/favicon_144x144.png" alt="YouTube Logo" class="youtube-logo">
+                        <p>Choose how to analyze your history:</p>
+                        <div class="upload-options">
+                            <div class="upload-option">
+                                <h3>Upload JSON File</h3>
+                                <p>Drag and drop your YouTube history file here</p>
+                                <p>or</p>
+                                <button class="upload-button" onclick="document.getElementById('fileInput').click()">
+                                    Choose File
+                                </button>
+                                <p class="file-info">Supported format: YouTube Takeout JSON file</p>
+                            </div>
+                            <div class="upload-option">
+                                <h3>Sign in with Google</h3>
+                                <p>Connect your Google account to analyze your history directly</p>
+                                <div class="g-signin2" data-onsuccess="onGoogleSignIn"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="dashboard-section" id="dashboard" style="display: none;">
+                <div class="stats-cards">
+                    <div class="stat-card">
+                        <h3>Total Videos Watched</h3>
+                        <p id="totalVideos">-</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Watch Time</h3>
+                        <p id="totalTime">-</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Most Watched Channel</h3>
+                        <p id="topChannel">-</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Busiest Hour</h3>
+                        <p id="busiestHour">-</p>
+                    </div>
+                </div>
+
+                <div class="charts-container">
+                    <div class="chart-wrapper">
+                        <canvas id="dailyTimeline"></canvas>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="hourlyDistribution"></canvas>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="channelDistribution"></canvas>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Your data is processed entirely in your browser. No data is sent to any server.</p>
+            <p>Need help? <a href="#" id="helpLink">Learn how to export your YouTube history</a></p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 
