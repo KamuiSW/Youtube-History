@@ -75,6 +75,52 @@ function initializeElements() {
     return true;
 }
 
+// Initialize event listeners
+function initializeEventListeners() {
+    if (!dropZone || !fileInput) {
+        console.error('Cannot initialize event listeners: DOM elements not found');
+        return;
+    }
+
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.style.borderColor = '#4a90e2';
+    });
+
+    dropZone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.style.borderColor = '#34495e';
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.style.borderColor = '#34495e';
+        
+        if (!e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) {
+            console.error('No files dropped');
+            return;
+        }
+        
+        const file = e.dataTransfer.files[0];
+        console.log('File dropped:', file.name, file.type, file.size);
+        handleFile(file);
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        if (!e.target || !e.target.files || !e.target.files.length) {
+            console.error('No file selected');
+            return;
+        }
+        
+        const file = e.target.files[0];
+        console.log('File selected:', file.name, file.type, file.size);
+        handleFile(file);
+    });
+}
+
 // Loading state
 function setLoading(isLoading) {
     if (isLoading) {
@@ -183,46 +229,6 @@ async function fetchYouTubeHistory(accessToken) {
         setLoading(false);
     }
 }
-
-// Drag and drop handlers
-dropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dropZone.style.borderColor = '#4a90e2';
-});
-
-dropZone.addEventListener('dragleave', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dropZone.style.borderColor = '#34495e';
-});
-
-dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dropZone.style.borderColor = '#34495e';
-    
-    if (!e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) {
-        console.error('No files dropped');
-        return;
-    }
-    
-    const file = e.dataTransfer.files[0];
-    console.log('File dropped:', file.name, file.type, file.size);
-    handleFile(file);
-});
-
-// File input handler
-fileInput.addEventListener('change', (e) => {
-    if (!e.target || !e.target.files || !e.target.files.length) {
-        console.error('No file selected');
-        return;
-    }
-    
-    const file = e.target.files[0];
-    console.log('File selected:', file.name, file.type, file.size);
-    handleFile(file);
-});
 
 // File validation
 function validateYouTubeHistory(data) {
@@ -596,20 +602,20 @@ function updateCharts(stats, topChannels) {
         const dailyData = Object.entries(stats.dailyTimeline)
             .sort(([a], [b]) => a.localeCompare(b));
         
-        if (dailyTimelineChart) {
+        if (dailyTimelineChart && dailyTimelineChart.data) {
             dailyTimelineChart.data.labels = dailyData.map(([date]) => date);
             dailyTimelineChart.data.datasets[0].data = dailyData.map(([,count]) => count);
             dailyTimelineChart.update();
         }
 
         // Hourly Distribution Chart
-        if (hourlyDistributionChart) {
+        if (hourlyDistributionChart && hourlyDistributionChart.data) {
             hourlyDistributionChart.data.datasets[0].data = stats.hourlyDistribution;
             hourlyDistributionChart.update();
         }
 
         // Channel Distribution Chart
-        if (channelDistributionChart) {
+        if (channelDistributionChart && channelDistributionChart.data) {
             const chartChannels = topChannels.slice(0, 5);
             channelDistributionChart.data.labels = chartChannels.map(channel => channel.name);
             channelDistributionChart.data.datasets[0].data = chartChannels.map(channel => channel.count);
@@ -880,47 +886,11 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
+    // Initialize event listeners
+    initializeEventListeners();
+
     // Initialize Google Sign-In
     initGoogleSignIn();
-
-    // Add event listeners
-    dropZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        dropZone.style.borderColor = '#4a90e2';
-    });
-
-    dropZone.addEventListener('dragleave', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        dropZone.style.borderColor = '#34495e';
-    });
-
-    dropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        dropZone.style.borderColor = '#34495e';
-        
-        if (!e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) {
-            console.error('No files dropped');
-            return;
-        }
-        
-        const file = e.dataTransfer.files[0];
-        console.log('File dropped:', file.name, file.type, file.size);
-        handleFile(file);
-    });
-
-    fileInput.addEventListener('change', (e) => {
-        if (!e.target || !e.target.files || !e.target.files.length) {
-            console.error('No file selected');
-            return;
-        }
-        
-        const file = e.target.files[0];
-        console.log('File selected:', file.name, file.type, file.size);
-        handleFile(file);
-    });
 
     console.log('DOM loaded and initialized');
 }); 
