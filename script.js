@@ -20,20 +20,29 @@ function initGoogleSignIn() {
         return;
     }
     
+    // Check if config exists
+    if (!window.config || !window.config.GOOGLE_CLIENT_ID) {
+        console.error('Google Client ID not configured');
+        return;
+    }
+    
     gapi.load('auth2', function() {
         gapi.auth2.init({
-            client_id: config.GOOGLE_CLIENT_ID,
+            client_id: window.config.GOOGLE_CLIENT_ID,
             scope: 'https://www.googleapis.com/auth/youtube.readonly'
         }).then(function(auth2) {
             console.log('Google Sign-In initialized');
         }).catch(function(error) {
             console.error('Error initializing Google Sign-In:', error);
+            // Don't show error to user, just log it
         });
     });
 }
 
 // Set Google Client ID from config
-document.querySelector('meta[name="google-signin-client_id"]').content = config.GOOGLE_CLIENT_ID;
+if (window.config && window.config.GOOGLE_CLIENT_ID) {
+    document.querySelector('meta[name="google-signin-client_id"]').content = window.config.GOOGLE_CLIENT_ID;
+}
 
 // Initialize Google Sign-In when the page loads
 window.addEventListener('load', initGoogleSignIn);
