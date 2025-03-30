@@ -140,7 +140,7 @@ async function fetchYouTubeHistory(accessToken) {
                     name: item.snippet.channelTitle,
                     url: `https://www.youtube.com/channel/${item.snippet.channelId}`
                 }],
-                time: item.snippet.publishedAt,
+                time: new Date(item.snippet.publishedAt).toISOString(),
                 products: ["YouTube"],
                 activityControls: ["YouTube watch history"]
             }));
@@ -153,7 +153,8 @@ async function fetchYouTubeHistory(accessToken) {
         if (history.length === 0) {
             throw new Error('No YouTube history found. Please make sure you have watched videos and granted access to your history.');
         }
-        
+
+        console.log('Fetched YouTube history:', history.length, 'items');
         processData(history);
     } catch (error) {
         console.error('Error fetching YouTube history:', error);
@@ -345,158 +346,118 @@ function handleFile(file) {
     reader.readAsText(file);
 }
 
-// Data processing
+// Process the data and update the dashboard
 function processData(data) {
-    // Show dashboard
-    dashboard.style.display = 'block';
-    
-    // Initialize charts
-    initializeCharts();
-    
-    // Process the data
-    const stats = calculateStats(data);
-    updateDashboard(stats);
-    
-    setLoading(false);
-}
+    try {
+        console.log('Processing data:', data.length, 'items');
+        // Reset stats
+        stats = {
+            totalVideos: 0,
+            totalWatchTime: 0,
+            uniqueChannels: new Set(),
+            channelWatchTime: {},
+            hourlyDistribution: new Array(24).fill(0),
+            monthlyDistribution: new Array(12).fill(0),
+            yearlyDistribution: {},
+            topChannels: [],
+            topVideos: [],
+            busiestHour: 0,
+            busiestMonth: 0,
+            busiestYear: 0
+        };
 
-// Calculate statistics
-function calculateStats(data) {
-    const stats = {
-        totalVideos: 0,
-        totalTime: 0,
-        channelCounts: {},
-        hourlyDistribution: Array(24).fill(0),
-        dailyTimeline: {}
-    };
-
-    // Debug: Track unknown channel videos with more details
-    const unknownChannelVideos = [];
-    const channelDataLog = [];
-
-    data.forEach((item, index) => {
-        // Debug: Log all items before filtering
-        console.log(`Processing item ${index}:`, {
-            title: item.title,
-            url: item.titleUrl,
-            hasSubtitles: !!item.subtitles,
-            subtitlesLength: item.subtitles ? item.subtitles.length : 0
-        });
-
-        // Only skip ads, keep other content
-        if (item.title && (
-            item.title.includes('Viewed Ads On YouTube') ||
-            item.title.includes('Watched Ad') ||
-            item.title.includes('Ad')
-        )) {
-            console.log(`Skipping ad: ${item.title}`);
-            return;
-        }
-
-        stats.totalVideos++;
-
-        // Debug: Log all channel-related data
-        channelDataLog.push({
-            index,
-            title: item.title,
-            url: item.titleUrl,
-            hasSubtitles: !!item.subtitles,
-            subtitlesLength: item.subtitles ? item.subtitles.length : 0,
-            subtitlesData: item.subtitles,
-            rawData: item
-        });
-
-        // Extract channel name with detailed logging
-        let channel = 'Unknown Channel';
-        if (item.subtitles && item.subtitles[0]) {
-            channel = item.subtitles[0].name;
-            console.log(`Found channel from subtitles: ${channel} for video: ${item.title}`);
-        } else if (item.titleUrl) {
-            // Try to extract channel from URL
-            const channelMatch = item.titleUrl.match(/\/channel\/([^\/]+)/);
-            if (channelMatch) {
-                channel = channelMatch[1];
-                console.log(`Found channel from URL: ${channel} for video: ${item.title}`);
-            } else {
-                // Try to extract from video title if it contains channel name
-                const titleMatch = item.title.match(/Watched (.+?) -/);
-                if (titleMatch) {
-                    channel = titleMatch[1];
-                    console.log(`Found channel from title: ${channel} for video: ${item.title}`);
-                }
+        // Filter and process videos
+        const videos = data.filter(item => {
+            // Skip ads and non-video content
+            if (!item.titleUrl || 
+                item.title.toLowerCase().includes('advertisement') ||
+                item.title.toLowerCase().includes('ad -') ||
+                item.title.toLowerCase().includes('ad:') ||
+                item.title.toLowerCase().includes('ads by google')) {
+                return false;
             }
-        }
-        
-        // Debug: Log unknown channel videos with more context
-        if (channel === 'Unknown Channel') {
-            unknownChannelVideos.push({
-                index,
-                title: item.title || 'No title',
-                url: item.titleUrl || 'No URL',
-                time: item.time || 'No timestamp',
-                hasSubtitles: !!item.subtitles,
-                subtitlesLength: item.subtitles ? item.subtitles.length : 0,
-                subtitlesData: item.subtitles,
-                rawData: item
-            });
-        }
-        
-        // Count channels
-        stats.channelCounts[channel] = (stats.channelCounts[channel] || 0) + 1;
-
-        // Parse time and update hourly distribution
-        const date = new Date(item.time);
-        stats.hourlyDistribution[date.getHours()]++;
-
-        // Update daily timeline
-        const dateKey = date.toISOString().split('T')[0];
-        stats.dailyTimeline[dateKey] = (stats.dailyTimeline[dateKey] || 0) + 1;
-    });
-
-    // Debug: Log comprehensive analysis
-    console.group('Channel Data Analysis');
-    console.log('Total videos processed:', stats.totalVideos);
-    console.log('Total unknown channel videos:', unknownChannelVideos.length);
-    console.log('Percentage of unknown channels:', ((unknownChannelVideos.length / stats.totalVideos) * 100).toFixed(2) + '%');
-    
-    console.log('\nChannel Counts:');
-    Object.entries(stats.channelCounts)
-        .sort(([,a], [,b]) => b - a)
-        .slice(0, 10)
-        .forEach(([channel, count]) => {
-            console.log(`${channel}: ${count} videos`);
+            return true;
         });
 
-    console.log('\nSample of Unknown Channel Videos:');
-    unknownChannelVideos.slice(0, 5).forEach(video => {
-        console.log('\n---');
-        console.log('Title:', video.title);
-        console.log('URL:', video.url);
-        console.log('Has Subtitles:', video.hasSubtitles);
-        console.log('Subtitles Length:', video.subtitlesLength);
-        console.log('Subtitles Data:', video.subtitlesData);
-        console.log('Raw Data:', video.rawData);
-    });
+        console.log('Filtered videos:', videos.length);
 
-    console.log('\nChannel Data Log Sample:');
-    channelDataLog.slice(0, 5).forEach(log => {
-        console.log('\n---');
-        console.log('Index:', log.index);
-        console.log('Title:', log.title);
-        console.log('Has Subtitles:', log.hasSubtitles);
-        console.log('Subtitles Length:', log.subtitlesLength);
-        console.log('Subtitles Data:', log.subtitlesData);
-    });
-    console.groupEnd();
+        // Process each video
+        videos.forEach(item => {
+            try {
+                // Extract channel name from subtitles
+                let channelName = "Unknown Channel";
+                if (item.subtitles && item.subtitles.length > 0) {
+                    channelName = item.subtitles[0].name;
+                }
 
-    // Calculate total time (assuming average video length of 10 minutes)
-    stats.totalTime = stats.totalVideos * 10;
+                // Add to unique channels
+                stats.uniqueChannels.add(channelName);
 
-    return stats;
+                // Calculate watch time (assuming average video length of 10 minutes)
+                const watchTime = 10; // minutes per video
+                stats.totalWatchTime += watchTime;
+
+                // Update channel watch time
+                stats.channelWatchTime[channelName] = (stats.channelWatchTime[channelName] || 0) + watchTime;
+
+                // Parse timestamp
+                const timestamp = new Date(item.time);
+                const hour = timestamp.getHours();
+                const month = timestamp.getMonth();
+                const year = timestamp.getFullYear();
+
+                // Update distributions
+                stats.hourlyDistribution[hour]++;
+                stats.monthlyDistribution[month]++;
+                stats.yearlyDistribution[year] = (stats.yearlyDistribution[year] || 0) + 1;
+
+                // Update top videos
+                stats.topVideos.push({
+                    title: item.title,
+                    channel: channelName,
+                    url: item.titleUrl,
+                    watchTime: watchTime
+                });
+
+            } catch (error) {
+                console.error('Error processing video:', error);
+            }
+        });
+
+        // Calculate final stats
+        stats.totalVideos = videos.length;
+        stats.uniqueChannels = Array.from(stats.uniqueChannels);
+
+        // Sort channels by watch time
+        stats.topChannels = Object.entries(stats.channelWatchTime)
+            .map(([name, time]) => ({ name, time }))
+            .sort((a, b) => b.time - a.time)
+            .slice(0, 10);
+
+        // Sort videos by watch time
+        stats.topVideos.sort((a, b) => b.watchTime - a.watchTime);
+
+        // Find busiest hour
+        stats.busiestHour = stats.hourlyDistribution.indexOf(Math.max(...stats.hourlyDistribution));
+
+        // Find busiest month
+        stats.busiestMonth = stats.monthlyDistribution.indexOf(Math.max(...stats.monthlyDistribution));
+
+        // Find busiest year
+        stats.busiestYear = Object.entries(stats.yearlyDistribution)
+            .sort((a, b) => b[1] - a[1])[0][0];
+
+        console.log('Stats calculated:', stats);
+        updateDashboard();
+    } catch (error) {
+        console.error('Error processing data:', error);
+        alert('Error processing your YouTube history. Please try again.');
+        setLoading(false);
+    }
 }
 
 // Update dashboard with statistics
-function updateDashboard(stats) {
+function updateDashboard() {
     // Add reset button if not already present
     if (!document.getElementById('resetButton')) {
         const resetButton = document.createElement('button');
@@ -509,16 +470,15 @@ function updateDashboard(stats) {
     
     // Update stat cards
     document.getElementById('totalVideos').textContent = stats.totalVideos.toLocaleString();
-    document.getElementById('totalTime').textContent = `${Math.round(stats.totalTime / 60)} hours`;
+    document.getElementById('totalTime').textContent = `${Math.round(stats.totalWatchTime / 60)} hours`;
     
     // Find top channel
-    const topChannels = Object.entries(stats.channelCounts)
-        .sort(([,a], [,b]) => b - a);
+    const topChannels = stats.topChannels;
     const topChannel = topChannels[0];
-    document.getElementById('topChannel').textContent = topChannel ? topChannel[0] : 'N/A';
+    document.getElementById('topChannel').textContent = topChannel ? topChannel.name : 'N/A';
     
     // Find busiest hour
-    const busiestHour = stats.hourlyDistribution.indexOf(Math.max(...stats.hourlyDistribution));
+    const busiestHour = stats.busiestHour;
     document.getElementById('busiestHour').textContent = `${busiestHour}:00`;
 
     // Update charts
@@ -528,10 +488,10 @@ function updateDashboard(stats) {
 // Update charts with data
 function updateCharts(stats, topChannels) {
     // Daily Timeline Chart
-    const dailyData = Object.entries(stats.dailyTimeline)
+    const dailyData = Object.entries(stats.hourlyDistribution)
         .sort(([a], [b]) => a.localeCompare(b));
     
-    dailyTimelineChart.data.labels = dailyData.map(([date]) => date);
+    dailyTimelineChart.data.labels = dailyData.map(([hour]) => `${hour}:00`);
     dailyTimelineChart.data.datasets[0].data = dailyData.map(([,count]) => count);
     dailyTimelineChart.update();
 
@@ -735,20 +695,24 @@ function triggerGoogleSignIn() {
             }).catch(function(error) {
                 console.error('Error signing in:', error);
                 // Handle specific error cases
-                if (error.error === 'popup_closed_by_user') {
-                    // User closed the popup, don't show error
-                    return;
+                if (error && error.error) {
+                    switch (error.error) {
+                        case 'popup_closed_by_user':
+                            // User closed the popup, don't show error
+                            return;
+                        case 'access_denied':
+                            alert('Access denied. Please allow access to your YouTube history.');
+                            return;
+                        case 'immediate_failed':
+                            alert('Sign-in failed. Please try again.');
+                            return;
+                        default:
+                            alert('Error signing in with Google. Please try again or use the JSON file upload option.');
+                    }
+                } else {
+                    // For unknown error types
+                    alert('Error signing in with Google. Please try again or use the JSON file upload option.');
                 }
-                if (error.error === 'access_denied') {
-                    alert('Access denied. Please allow access to your YouTube history.');
-                    return;
-                }
-                if (error.error === 'immediate_failed') {
-                    alert('Sign-in failed. Please try again.');
-                    return;
-                }
-                // For other errors, show a generic message
-                alert('Error signing in with Google. Please try again or use the JSON file upload option.');
             });
         } else {
             console.error('Google Sign-In not initialized');
