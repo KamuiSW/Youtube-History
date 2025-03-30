@@ -13,8 +13,25 @@ let dailyTimelineChart = null;
 let hourlyDistributionChart = null;
 let channelDistributionChart = null;
 
+// Initialize Google Sign-In
+function initGoogleSignIn() {
+    gapi.load('auth2', function() {
+        gapi.auth2.init({
+            client_id: config.GOOGLE_CLIENT_ID,
+            scope: 'https://www.googleapis.com/auth/youtube.readonly'
+        }).then(function(auth2) {
+            console.log('Google Sign-In initialized');
+        }).catch(function(error) {
+            console.error('Error initializing Google Sign-In:', error);
+        });
+    });
+}
+
 // Set Google Client ID from config
 document.querySelector('meta[name="google-signin-client_id"]').content = config.GOOGLE_CLIENT_ID;
+
+// Initialize Google Sign-In when the page loads
+window.addEventListener('load', initGoogleSignIn);
 
 // Loading state
 function setLoading(isLoading) {
@@ -301,6 +318,10 @@ function updateDashboard(stats) {
         .sort(([,a], [,b]) => b - a);
     const topChannel = topChannels[0];
     document.getElementById('topChannel').textContent = topChannel ? topChannel[0] : 'N/A';
+    
+    // Find busiest hour
+    const busiestHour = stats.hourlyDistribution.indexOf(Math.max(...stats.hourlyDistribution));
+    document.getElementById('busiestHour').textContent = `${busiestHour}:00`;
 
     // Update charts
     updateCharts(stats, topChannels);
@@ -468,8 +489,16 @@ function initializeCharts() {
 
 // Trigger Google Sign-In
 function triggerGoogleSignIn() {
-    const googleSignInButton = document.querySelector('.g-signin2');
-    if (googleSignInButton) {
-        googleSignInButton.click();
+    const auth2 = gapi.auth2.getAuthInstance();
+    if (auth2) {
+        auth2.signIn().then(function(googleUser) {
+            onGoogleSignIn(googleUser);
+        }).catch(function(error) {
+            console.error('Error signing in:', error);
+            alert('Error signing in with Google. Please try again.');
+        });
+    } else {
+        console.error('Google Sign-In not initialized');
+        alert('Google Sign-In is not initialized. Please refresh the page and try again.');
     }
 } 
