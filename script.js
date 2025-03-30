@@ -151,7 +151,6 @@ function setLoading(isLoading) {
                         <img src="https://www.google.com/favicon.ico" alt="Google Logo" class="google-icon">
                         Sign in with Google
                     </button>
-                    <div class="g-signin2" data-onsuccess="onGoogleSignIn" style="display: none;"></div>
                 </div>
             </div>
         `;
@@ -168,16 +167,37 @@ function triggerGoogleSignIn() {
     try {
         const auth2 = gapi.auth2.getAuthInstance();
         if (auth2) {
-            // Use the g-signin2 div instead of direct signIn call
-            const signInButton = document.querySelector('.g-signin2');
-            if (signInButton) {
-                signInButton.style.display = 'block';
-                signInButton.click();
-                signInButton.style.display = 'none';
-            } else {
-                console.error('Sign-in button not found');
-                alert('Error: Sign-in button not found. Please refresh the page and try again.');
-            }
+            const options = {
+                scope: 'https://www.googleapis.com/auth/youtube.readonly',
+                prompt: 'consent'
+            };
+
+            auth2.signIn(options)
+                .then(function(googleUser) {
+                    onGoogleSignIn(googleUser);
+                })
+                .catch(function(error) {
+                    console.error('Error signing in:', error);
+                    // Handle specific error cases
+                    if (error && error.error) {
+                        switch (error.error) {
+                            case 'popup_closed_by_user':
+                                // User closed the popup, don't show error
+                                return;
+                            case 'access_denied':
+                                alert('Access denied. Please allow access to your YouTube history.');
+                                return;
+                            case 'immediate_failed':
+                                alert('Sign-in failed. Please try again.');
+                                return;
+                            default:
+                                alert('Error signing in with Google. Please try again or use the JSON file upload option.');
+                        }
+                    } else {
+                        // For unknown error types
+                        alert('Error signing in with Google. Please try again or use the JSON file upload option.');
+                    }
+                });
         } else {
             console.error('Google Sign-In not initialized');
             alert('Google Sign-In is not initialized. Please refresh the page and try again.');
