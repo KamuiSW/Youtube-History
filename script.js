@@ -3,10 +3,10 @@ Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Rob
 Chart.defaults.color = '#e1e8ed';
 
 // DOM Elements
-const dropZone = document.getElementById('dropZone');
-const fileInput = document.getElementById('fileInput');
-const dashboard = document.getElementById('dashboard');
-const uploadContent = document.querySelector('.upload-content');
+let dropZone = null;
+let fileInput = null;
+let dashboard = null;
+let uploadContent = null;
 
 // Chart instances
 let dailyTimelineChart = null;
@@ -53,6 +53,21 @@ if (window.config && window.config.GOOGLE_CLIENT_ID) {
 
 // Initialize Google Sign-In when the page loads
 window.addEventListener('load', initGoogleSignIn);
+
+// Initialize DOM elements and charts
+function initializeElements() {
+    dropZone = document.getElementById('dropZone');
+    fileInput = document.getElementById('fileInput');
+    dashboard = document.getElementById('dashboard');
+    uploadContent = document.querySelector('.upload-content');
+
+    if (!dropZone || !fileInput || !dashboard || !uploadContent) {
+        console.error('Required DOM elements not found');
+        return false;
+    }
+
+    return true;
+}
 
 // Loading state
 function setLoading(isLoading) {
@@ -181,7 +196,6 @@ dropZone.addEventListener('drop', (e) => {
     e.stopPropagation();
     dropZone.style.borderColor = '#34495e';
     
-    // Check if files were dropped
     if (!e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) {
         console.error('No files dropped');
         return;
@@ -361,6 +375,12 @@ function handleFile(file) {
 
 // Process the data and update the dashboard
 function processData(data) {
+    // Ensure DOM elements are initialized
+    if (!initializeElements()) {
+        console.error('Cannot process data: DOM elements not initialized');
+        return;
+    }
+
     // Show dashboard
     dashboard.style.display = 'block';
     
@@ -511,6 +531,12 @@ function calculateStats(data) {
 
 // Update dashboard with statistics
 function updateDashboard(stats) {
+    // Ensure DOM elements are initialized
+    if (!initializeElements()) {
+        console.error('Cannot update dashboard: DOM elements not initialized');
+        return;
+    }
+
     // Add reset button if not already present
     if (!document.getElementById('resetButton')) {
         const resetButton = document.createElement('button');
@@ -544,6 +570,12 @@ function updateDashboard(stats) {
 // Update charts with data
 function updateCharts(stats, topChannels) {
     try {
+        // Check if chart instances exist
+        if (!dailyTimelineChart || !hourlyDistributionChart || !channelDistributionChart) {
+            console.error('Charts not initialized');
+            return;
+        }
+
         // Daily Timeline Chart
         const dailyData = Object.entries(stats.dailyTimeline)
             .sort(([a], [b]) => a.localeCompare(b));
@@ -570,146 +602,160 @@ function updateCharts(stats, topChannels) {
 
 // Chart initialization
 function initializeCharts() {
-    // Destroy existing charts if they exist
-    if (dailyTimelineChart) dailyTimelineChart.destroy();
-    if (hourlyDistributionChart) hourlyDistributionChart.destroy();
-    if (channelDistributionChart) channelDistributionChart.destroy();
+    try {
+        // Check if chart elements exist
+        const dailyTimelineElement = document.getElementById('dailyTimeline');
+        const hourlyDistributionElement = document.getElementById('hourlyDistribution');
+        const channelDistributionElement = document.getElementById('channelDistribution');
 
-    // Daily Timeline Chart
-    const dailyTimelineCtx = document.getElementById('dailyTimeline').getContext('2d');
-    dailyTimelineChart = new Chart(dailyTimelineCtx, {
-        type: 'line',
-        data: {
-            labels: [],
-            datasets: [{
-                label: 'Watch Time (minutes)',
-                data: [],
-                borderColor: '#4a90e2',
-                backgroundColor: 'rgba(74, 144, 226, 0.2)',
-                tension: 0.1,
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Daily Watch Time',
-                    color: '#ffffff',
-                    font: {
-                        size: 16,
-                        weight: 600
-                    }
-                }
+        if (!dailyTimelineElement || !hourlyDistributionElement || !channelDistributionElement) {
+            console.error('Chart elements not found in DOM');
+            return;
+        }
+
+        // Destroy existing charts if they exist
+        if (dailyTimelineChart) dailyTimelineChart.destroy();
+        if (hourlyDistributionChart) hourlyDistributionChart.destroy();
+        if (channelDistributionChart) channelDistributionChart.destroy();
+
+        // Daily Timeline Chart
+        const dailyTimelineCtx = dailyTimelineElement.getContext('2d');
+        dailyTimelineChart = new Chart(dailyTimelineCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Watch Time (minutes)',
+                    data: [],
+                    borderColor: '#4a90e2',
+                    backgroundColor: 'rgba(74, 144, 226, 0.2)',
+                    tension: 0.1,
+                    fill: true
+                }]
             },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    grid: {
-                        color: 'rgba(255, 255, 255, 0.1)'
-                    },
-                    ticks: {
-                        color: '#95a5a6'
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Daily Watch Time',
+                        color: '#ffffff',
+                        font: {
+                            size: 16,
+                            weight: 600
+                        }
                     }
                 },
-                x: {
-                    grid: {
-                        display: false
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: '#95a5a6'
+                        }
                     },
-                    ticks: {
-                        color: '#95a5a6'
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#95a5a6'
+                        }
                     }
                 }
             }
-        }
-    });
+        });
 
-    // Hourly Distribution Chart
-    const hourlyDistributionCtx = document.getElementById('hourlyDistribution').getContext('2d');
-    hourlyDistributionChart = new Chart(hourlyDistributionCtx, {
-        type: 'bar',
-        data: {
-            labels: Array.from({length: 24}, (_, i) => `${i}:00`),
-            datasets: [{
-                label: 'Watch Time (minutes)',
-                data: Array(24).fill(0),
-                backgroundColor: '#4a90e2'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Hourly Watch Time Distribution',
-                    color: '#ffffff',
-                    font: {
-                        size: 16,
-                        weight: 600
-                    }
-                }
+        // Hourly Distribution Chart
+        const hourlyDistributionCtx = hourlyDistributionElement.getContext('2d');
+        hourlyDistributionChart = new Chart(hourlyDistributionCtx, {
+            type: 'bar',
+            data: {
+                labels: Array.from({length: 24}, (_, i) => `${i}:00`),
+                datasets: [{
+                    label: 'Watch Time (minutes)',
+                    data: Array(24).fill(0),
+                    backgroundColor: '#4a90e2'
+                }]
             },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    grid: {
-                        color: 'rgba(255, 255, 255, 0.1)'
-                    },
-                    ticks: {
-                        color: '#95a5a6'
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Hourly Watch Time Distribution',
+                        color: '#ffffff',
+                        font: {
+                            size: 16,
+                            weight: 600
+                        }
                     }
                 },
-                x: {
-                    grid: {
-                        display: false
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: '#95a5a6'
+                        }
                     },
-                    ticks: {
-                        color: '#95a5a6'
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#95a5a6'
+                        }
                     }
                 }
             }
-        }
-    });
+        });
 
-    // Channel Distribution Chart
-    const channelDistributionCtx = document.getElementById('channelDistribution').getContext('2d');
-    channelDistributionChart = new Chart(channelDistributionCtx, {
-        type: 'pie',
-        data: {
-            labels: [],
-            datasets: [{
-                data: [],
-                backgroundColor: [
-                    '#4a90e2',
-                    '#357abd',
-                    '#2c3e50',
-                    '#34495e',
-                    '#95a5a6'
-                ]
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Top Channels',
-                    color: '#ffffff',
-                    font: {
-                        size: 16,
-                        weight: 600
-                    }
-                },
-                legend: {
-                    labels: {
-                        color: '#95a5a6'
+        // Channel Distribution Chart
+        const channelDistributionCtx = channelDistributionElement.getContext('2d');
+        channelDistributionChart = new Chart(channelDistributionCtx, {
+            type: 'pie',
+            data: {
+                labels: [],
+                datasets: [{
+                    data: [],
+                    backgroundColor: [
+                        '#4a90e2',
+                        '#357abd',
+                        '#2c3e50',
+                        '#34495e',
+                        '#95a5a6'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Top Channels',
+                        color: '#ffffff',
+                        font: {
+                            size: 16,
+                            weight: 600
+                        }
+                    },
+                    legend: {
+                        labels: {
+                            color: '#95a5a6'
+                        }
                     }
                 }
             }
-        }
-    });
+        });
+    } catch (error) {
+        console.error('Error initializing charts:', error);
+    }
 }
 
 // Reset function
@@ -800,4 +846,57 @@ window.addEventListener('error', function(e) {
 // Add console logging for debugging
 console.log('Script loaded and initialized');
 console.log('Drop zone element:', dropZone);
-console.log('File input element:', fileInput); 
+console.log('File input element:', fileInput);
+
+// Initialize everything when the DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize DOM elements
+    if (!initializeElements()) {
+        console.error('Failed to initialize DOM elements');
+        return;
+    }
+
+    // Initialize Google Sign-In
+    initGoogleSignIn();
+
+    // Add event listeners
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.style.borderColor = '#4a90e2';
+    });
+
+    dropZone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.style.borderColor = '#34495e';
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.style.borderColor = '#34495e';
+        
+        if (!e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) {
+            console.error('No files dropped');
+            return;
+        }
+        
+        const file = e.dataTransfer.files[0];
+        console.log('File dropped:', file.name, file.type, file.size);
+        handleFile(file);
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        if (!e.target || !e.target.files || !e.target.files.length) {
+            console.error('No file selected');
+            return;
+        }
+        
+        const file = e.target.files[0];
+        console.log('File selected:', file.name, file.type, file.size);
+        handleFile(file);
+    });
+
+    console.log('DOM loaded and initialized');
+}); 
