@@ -38,7 +38,8 @@ function initGoogleSignIn() {
         gapi.load('auth2', function() {
             gapi.auth2.init({
                 client_id: window.config.GOOGLE_CLIENT_ID,
-                scope: 'https://www.googleapis.com/auth/youtube.readonly'
+                scope: 'https://www.googleapis.com/auth/youtube.readonly',
+                cookiepolicy: 'single_host_origin'
             }).then(function(auth2) {
                 console.log('Google Sign-In initialized successfully');
             }).catch(function(error) {
@@ -592,39 +593,53 @@ function updateCharts(stats, topChannels) {
             return;
         }
 
-        // Check if chart instances exist
-        if (!dailyTimelineChart || !hourlyDistributionChart || !channelDistributionChart) {
-            console.error('Charts not initialized');
+        // Check if chart instances exist and are valid
+        if (!dailyTimelineChart || !dailyTimelineChart.data || !dailyTimelineChart.data.datasets) {
+            console.log('Reinitializing daily timeline chart');
+            initializeCharts();
+        }
+        if (!hourlyDistributionChart || !hourlyDistributionChart.data || !hourlyDistributionChart.data.datasets) {
+            console.log('Reinitializing hourly distribution chart');
+            initializeCharts();
+        }
+        if (!channelDistributionChart || !channelDistributionChart.data || !channelDistributionChart.data.datasets) {
+            console.log('Reinitializing channel distribution chart');
             initializeCharts();
         }
 
         // Daily Timeline Chart
-        const dailyData = Object.entries(stats.dailyTimeline)
+        const dailyData = Object.entries(stats.dailyTimeline || {})
             .sort(([a], [b]) => a.localeCompare(b));
         
-        if (dailyTimelineChart && dailyTimelineChart.data) {
+        if (dailyTimelineChart && dailyTimelineChart.data && dailyTimelineChart.data.datasets) {
             dailyTimelineChart.data.labels = dailyData.map(([date]) => date);
             dailyTimelineChart.data.datasets[0].data = dailyData.map(([,count]) => count);
-            dailyTimelineChart.update();
+            dailyTimelineChart.update('none'); // Use 'none' mode for better performance
         }
 
         // Hourly Distribution Chart
-        if (hourlyDistributionChart && hourlyDistributionChart.data) {
-            hourlyDistributionChart.data.datasets[0].data = stats.hourlyDistribution;
-            hourlyDistributionChart.update();
+        if (hourlyDistributionChart && hourlyDistributionChart.data && hourlyDistributionChart.data.datasets) {
+            hourlyDistributionChart.data.datasets[0].data = stats.hourlyDistribution || Array(24).fill(0);
+            hourlyDistributionChart.update('none');
         }
 
         // Channel Distribution Chart
-        if (channelDistributionChart && channelDistributionChart.data) {
-            const chartChannels = topChannels.slice(0, 5);
+        if (channelDistributionChart && channelDistributionChart.data && channelDistributionChart.data.datasets) {
+            const chartChannels = (topChannels || []).slice(0, 5);
             channelDistributionChart.data.labels = chartChannels.map(channel => channel.name);
             channelDistributionChart.data.datasets[0].data = chartChannels.map(channel => channel.count);
-            channelDistributionChart.update();
+            channelDistributionChart.update('none');
         }
     } catch (error) {
         console.error('Error updating charts:', error);
         console.error('Stats:', stats);
         console.error('Top channels:', topChannels);
+        // Try to reinitialize charts on error
+        try {
+            initializeCharts();
+        } catch (initError) {
+            console.error('Error reinitializing charts:', initError);
+        }
     }
 }
 
@@ -831,32 +846,38 @@ function triggerGoogleSignIn() {
     try {
         const auth2 = gapi.auth2.getAuthInstance();
         if (auth2) {
-            auth2.signIn({
-                scope: 'https://www.googleapis.com/auth/youtube.readonly'
-            }).then(function(googleUser) {
-                onGoogleSignIn(googleUser);
-            }).catch(function(error) {
-                console.error('Error signing in:', error);
-                // Handle specific error cases
-                if (error && error.error) {
-                    switch (error.error) {
-                        case 'popup_closed_by_user':
-                            // User closed the popup, don't show error
-                            return;
-                        case 'access_denied':
-                            alert('Access denied. Please allow access to your YouTube history.');
-                            return;
-                        case 'immediate_failed':
-                            alert('Sign-in failed. Please try again.');
-                            return;
-                        default:
-                            alert('Error signing in with Google. Please try again or use the JSON file upload option.');
+            const options = {
+                scope: 'https://www.googleapis.com/auth/youtube.readonly',
+                prompt: 'consent',
+                cookiepolicy: 'single_host_origin'
+            };
+
+            auth2.signIn(options)
+                .then(function(googleUser) {
+                    onGoogleSignIn(googleUser);
+                })
+                .catch(function(error) {
+                    console.error('Error signing in:', error);
+                    // Handle specific error cases
+                    if (error && error.error) {
+                        switch (error.error) {
+                            case 'popup_closed_by_user':
+                                // User closed the popup, don't show error
+                                return;
+                            case 'access_denied':
+                                alert('Access denied. Please allow access to your YouTube history.');
+                                return;
+                            case 'immediate_failed':
+                                alert('Sign-in failed. Please try again.');
+                                return;
+                            default:
+                                alert('Error signing in with Google. Please try again or use the JSON file upload option.');
+                        }
+                    } else {
+                        // For unknown error types
+                        alert('Error signing in with Google. Please try again or use the JSON file upload option.');
                     }
-                } else {
-                    // For unknown error types
-                    alert('Error signing in with Google. Please try again or use the JSON file upload option.');
-                }
-            });
+                });
         } else {
             console.error('Google Sign-In not initialized');
             alert('Google Sign-In is not initialized. Please refresh the page and try again.');
