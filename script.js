@@ -271,13 +271,31 @@ function handleFile(file) {
             console.log('Is array:', Array.isArray(data));
             console.log('Data structure:', Object.keys(data));
             
+            // Validate the data structure
+            if (!Array.isArray(data)) {
+                throw new Error('Data must be an array');
+            }
+            
+            if (data.length === 0) {
+                throw new Error('Data array is empty');
+            }
+            
+            // Check if it has the expected YouTube history structure
+            const firstItem = data[0];
+            console.log('First item:', firstItem);
+            
+            // More lenient validation - just check if it has a title
+            if (!firstItem.title) {
+                throw new Error('Invalid YouTube history format - missing title');
+            }
+            
             validateYouTubeHistory(data);
             processData(data);
         } catch (error) {
             console.error('Error processing file:', error);
             console.error('Error details:', error.message);
             console.error('Error stack:', error.stack);
-            alert('Error processing file. Please make sure it\'s a valid YouTube history file.');
+            alert(`Error processing file: ${error.message}`);
             setLoading(false);
         }
     };
