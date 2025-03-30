@@ -92,10 +92,18 @@ function setLoading(isLoading) {
 
 // Google Sign-In callback
 function onGoogleSignIn(googleUser) {
-    const auth2 = gapi.auth2.getAuthInstance();
-    if (auth2.isSignedIn.get()) {
-        setLoading(true);
-        fetchYouTubeHistory(googleUser.getAuthResponse().access_token);
+    try {
+        const auth2 = gapi.auth2.getAuthInstance();
+        if (auth2.isSignedIn.get()) {
+            setLoading(true);
+            fetchYouTubeHistory(googleUser.getAuthResponse().access_token);
+        } else {
+            console.error('User not signed in after successful sign-in');
+            alert('Error: Could not complete sign-in. Please try again.');
+        }
+    } catch (error) {
+        console.error('Error in onGoogleSignIn:', error);
+        alert('Error completing sign-in. Please try again.');
     }
 }
 
@@ -116,7 +124,11 @@ async function fetchYouTubeHistory(accessToken) {
             const data = await response.json();
             
             if (data.error) {
-                throw new Error(data.error.message);
+                console.error('YouTube API Error:', data.error);
+                if (data.error.code === 403) {
+                    throw new Error('Access denied. Please make sure you have granted access to your YouTube history.');
+                }
+                throw new Error(data.error.message || 'Error fetching YouTube history');
             }
             
             // Convert API response to match our data format
@@ -138,10 +150,14 @@ async function fetchYouTubeHistory(accessToken) {
             
         } while (nextPageToken);
         
+        if (history.length === 0) {
+            throw new Error('No YouTube history found. Please make sure you have watched videos and granted access to your history.');
+        }
+        
         processData(history);
     } catch (error) {
         console.error('Error fetching YouTube history:', error);
-        alert('Error fetching your YouTube history. Please try again or use the JSON file upload option.');
+        alert(error.message || 'Error fetching your YouTube history. Please try again or use the JSON file upload option.');
         setLoading(false);
     }
 }
@@ -718,10 +734,20 @@ function triggerGoogleSignIn() {
                 onGoogleSignIn(googleUser);
             }).catch(function(error) {
                 console.error('Error signing in:', error);
+                // Handle specific error cases
                 if (error.error === 'popup_closed_by_user') {
                     // User closed the popup, don't show error
                     return;
                 }
+                if (error.error === 'access_denied') {
+                    alert('Access denied. Please allow access to your YouTube history.');
+                    return;
+                }
+                if (error.error === 'immediate_failed') {
+                    alert('Sign-in failed. Please try again.');
+                    return;
+                }
+                // For other errors, show a generic message
                 alert('Error signing in with Google. Please try again or use the JSON file upload option.');
             });
         } else {
