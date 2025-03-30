@@ -9,15 +9,6 @@
     <!-- Google Sign-In API -->
     <script src="https://apis.google.com/js/platform.js" async defer></script>
     <meta name="google-signin-client_id" content="760851876600-bl1vfhp6ci0cfootf10gi88i36s81k44.apps.googleusercontent.com">
-    <!-- Inline config to avoid loading issues -->
-    <script>
-        window.config = {
-            GOOGLE_CLIENT_ID: '760851876600-bl1vfhp6ci0cfootf10gi88i36s81k44.apps.googleusercontent.com',
-            YOUTUBE_API_KEY: 'YOUR_YOUTUBE_API_KEY',
-            BASE_URL: window.location.hostname === 'localhost' ? '' : '/Youtube-History/',
-            DEBUG: true
-        };
-    </script>
     <!-- Add error handling for script loading -->
     <script>
         window.addEventListener('error', function(e) {
@@ -105,7 +96,9 @@
         </footer>
     </div>
 
-    <!-- Load main script -->
+    <!-- Load config first -->
+    <script src="config.js"></script>
+    <!-- Then load main script -->
     <script src="script.js"></script>
 </body>
 </html> 
