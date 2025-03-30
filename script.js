@@ -29,6 +29,12 @@ function initGoogleSignIn() {
     }
     
     try {
+        // Check if already initialized
+        if (gapi.auth2.getAuthInstance()) {
+            console.log('Google Sign-In already initialized');
+            return;
+        }
+
         gapi.load('auth2', function() {
             gapi.auth2.init({
                 client_id: window.config.GOOGLE_CLIENT_ID,
@@ -570,29 +576,45 @@ function updateDashboard(stats) {
 // Update charts with data
 function updateCharts(stats, topChannels) {
     try {
+        // Check if chart elements exist
+        const dailyTimelineElement = document.getElementById('dailyTimeline');
+        const hourlyDistributionElement = document.getElementById('hourlyDistribution');
+        const channelDistributionElement = document.getElementById('channelDistribution');
+
+        if (!dailyTimelineElement || !hourlyDistributionElement || !channelDistributionElement) {
+            console.error('Chart elements not found in DOM');
+            return;
+        }
+
         // Check if chart instances exist
         if (!dailyTimelineChart || !hourlyDistributionChart || !channelDistributionChart) {
             console.error('Charts not initialized');
-            return;
+            initializeCharts();
         }
 
         // Daily Timeline Chart
         const dailyData = Object.entries(stats.dailyTimeline)
             .sort(([a], [b]) => a.localeCompare(b));
         
-        dailyTimelineChart.data.labels = dailyData.map(([date]) => date);
-        dailyTimelineChart.data.datasets[0].data = dailyData.map(([,count]) => count);
-        dailyTimelineChart.update();
+        if (dailyTimelineChart) {
+            dailyTimelineChart.data.labels = dailyData.map(([date]) => date);
+            dailyTimelineChart.data.datasets[0].data = dailyData.map(([,count]) => count);
+            dailyTimelineChart.update();
+        }
 
         // Hourly Distribution Chart
-        hourlyDistributionChart.data.datasets[0].data = stats.hourlyDistribution;
-        hourlyDistributionChart.update();
+        if (hourlyDistributionChart) {
+            hourlyDistributionChart.data.datasets[0].data = stats.hourlyDistribution;
+            hourlyDistributionChart.update();
+        }
 
         // Channel Distribution Chart
-        const chartChannels = topChannels.slice(0, 5);
-        channelDistributionChart.data.labels = chartChannels.map(channel => channel.name);
-        channelDistributionChart.data.datasets[0].data = chartChannels.map(channel => channel.count);
-        channelDistributionChart.update();
+        if (channelDistributionChart) {
+            const chartChannels = topChannels.slice(0, 5);
+            channelDistributionChart.data.labels = chartChannels.map(channel => channel.name);
+            channelDistributionChart.data.datasets[0].data = chartChannels.map(channel => channel.count);
+            channelDistributionChart.update();
+        }
     } catch (error) {
         console.error('Error updating charts:', error);
         console.error('Stats:', stats);
@@ -753,6 +775,8 @@ function initializeCharts() {
                 }
             }
         });
+
+        console.log('Charts initialized successfully');
     } catch (error) {
         console.error('Error initializing charts:', error);
     }
