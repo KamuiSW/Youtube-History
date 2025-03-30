@@ -1,0 +1,5 @@
+{
+  "/*": {
+    "Content-Security-Policy": "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://www.gstatic.com https://accounts.google.com; frame-src https://accounts.google.com;"
+  }
+} 

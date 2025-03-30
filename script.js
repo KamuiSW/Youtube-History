@@ -15,6 +15,11 @@ let channelDistributionChart = null;
 
 // Initialize Google Sign-In
 function initGoogleSignIn() {
+    if (typeof gapi === 'undefined') {
+        console.error('Google API not loaded');
+        return;
+    }
+    
     gapi.load('auth2', function() {
         gapi.auth2.init({
             client_id: config.GOOGLE_CLIENT_ID,
@@ -278,16 +283,51 @@ function processData(data) {
 // Calculate statistics
 function calculateStats(data) {
     const stats = {
-        totalVideos: data.length,
+        totalVideos: 0, // Changed from data.length to count actual videos
         totalTime: 0,
         channelCounts: {},
         hourlyDistribution: Array(24).fill(0),
         dailyTimeline: {}
     };
 
+    // Debug: Track unknown channel videos
+    const unknownChannelVideos = [];
+
     data.forEach(item => {
-        // Extract channel name from subtitles array
-        const channel = item.subtitles && item.subtitles[0] ? item.subtitles[0].name : 'Unknown Channel';
+        // Skip ads and non-video content
+        if (item.title && (
+            item.title.includes('Viewed Ads On YouTube') ||
+            item.title.includes('Watched Ad') ||
+            item.title.includes('Ad') ||
+            !item.titleUrl || // Skip items without URLs
+            !item.titleUrl.includes('youtube.com/watch') // Skip non-video URLs
+        )) {
+            return;
+        }
+
+        stats.totalVideos++; // Only increment for actual videos
+
+        // Extract channel name from subtitles array, with better fallback handling
+        let channel = 'Unknown Channel';
+        if (item.subtitles && item.subtitles[0]) {
+            channel = item.subtitles[0].name;
+        } else if (item.titleUrl) {
+            // Try to extract channel name from URL if available
+            const channelMatch = item.titleUrl.match(/\/channel\/([^\/]+)/);
+            if (channelMatch) {
+                channel = channelMatch[1];
+            }
+        }
+        
+        // Debug: Log unknown channel videos
+        if (channel === 'Unknown Channel') {
+            unknownChannelVideos.push({
+                title: item.title || 'No title',
+                url: item.titleUrl || 'No URL',
+                time: item.time || 'No timestamp',
+                rawData: item
+            });
+        }
         
         // Count channels
         stats.channelCounts[channel] = (stats.channelCounts[channel] || 0) + 1;
@@ -300,6 +340,22 @@ function calculateStats(data) {
         const dateKey = date.toISOString().split('T')[0];
         stats.dailyTimeline[dateKey] = (stats.dailyTimeline[dateKey] || 0) + 1;
     });
+
+    // Debug: Log unknown channel statistics
+    if (unknownChannelVideos.length > 0) {
+        console.group('Unknown Channel Videos Analysis');
+        console.log(`Total unknown channel videos: ${unknownChannelVideos.length}`);
+        console.log(`Percentage of total videos: ${((unknownChannelVideos.length / stats.totalVideos) * 100).toFixed(2)}%`);
+        console.log('Sample of unknown channel videos:');
+        unknownChannelVideos.slice(0, 5).forEach(video => {
+            console.log('---');
+            console.log('Title:', video.title);
+            console.log('URL:', video.url);
+            console.log('Time:', video.time);
+            console.log('Raw data:', video.rawData);
+        });
+        console.groupEnd();
+    }
 
     // Calculate total time (assuming average video length of 10 minutes)
     stats.totalTime = stats.totalVideos * 10;
@@ -489,6 +545,11 @@ function initializeCharts() {
 
 // Trigger Google Sign-In
 function triggerGoogleSignIn() {
+    if (typeof gapi === 'undefined') {
+        alert('Google API not loaded. Please refresh the page and try again.');
+        return;
+    }
+
     const auth2 = gapi.auth2.getAuthInstance();
     if (auth2) {
         auth2.signIn().then(function(googleUser) {
