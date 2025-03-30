@@ -39,7 +39,8 @@ function initGoogleSignIn() {
             gapi.auth2.init({
                 client_id: window.config.GOOGLE_CLIENT_ID,
                 scope: 'https://www.googleapis.com/auth/youtube.readonly',
-                cookiepolicy: 'single_host_origin'
+                cookiepolicy: 'single_host_origin',
+                ux_mode: 'redirect'
             }).then(function(auth2) {
                 console.log('Google Sign-In initialized successfully');
             }).catch(function(error) {
@@ -164,7 +165,9 @@ function onGoogleSignIn(googleUser) {
         const auth2 = gapi.auth2.getAuthInstance();
         if (auth2.isSignedIn.get()) {
             setLoading(true);
-            fetchYouTubeHistory(googleUser.getAuthResponse().access_token);
+            const accessToken = googleUser.getAuthResponse().access_token;
+            console.log('Got access token, fetching YouTube history...');
+            fetchYouTubeHistory(accessToken);
         } else {
             console.error('User not signed in after successful sign-in');
             alert('Error: Could not complete sign-in. Please try again.');
@@ -182,6 +185,7 @@ async function fetchYouTubeHistory(accessToken) {
         let nextPageToken = null;
         
         do {
+            console.log('Fetching YouTube history page...');
             const response = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&myRating=like&maxResults=50&pageToken=${nextPageToken || ''}`, {
                 headers: {
                     'Authorization': `Bearer ${accessToken}`,
@@ -189,7 +193,12 @@ async function fetchYouTubeHistory(accessToken) {
                 }
             });
             
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             const data = await response.json();
+            console.log('Received YouTube API response:', data);
             
             if (data.error) {
                 console.error('YouTube API Error:', data.error);
@@ -197,6 +206,11 @@ async function fetchYouTubeHistory(accessToken) {
                     throw new Error('Access denied. Please make sure you have granted access to your YouTube history.');
                 }
                 throw new Error(data.error.message || 'Error fetching YouTube history');
+            }
+            
+            if (!data.items || !Array.isArray(data.items)) {
+                console.error('Invalid API response format:', data);
+                throw new Error('Invalid response format from YouTube API');
             }
             
             // Convert API response to match our data format
@@ -216,13 +230,15 @@ async function fetchYouTubeHistory(accessToken) {
             history.push(...items);
             nextPageToken = data.nextPageToken;
             
+            console.log(`Processed ${items.length} items. Total: ${history.length}`);
+            
         } while (nextPageToken);
         
         if (history.length === 0) {
             throw new Error('No YouTube history found. Please make sure you have watched videos and granted access to your history.');
         }
 
-        console.log('Fetched YouTube history:', history.length, 'items');
+        console.log('Successfully fetched YouTube history:', history.length, 'items');
         processData(history);
     } catch (error) {
         console.error('Error fetching YouTube history:', error);
@@ -849,7 +865,8 @@ function triggerGoogleSignIn() {
             const options = {
                 scope: 'https://www.googleapis.com/auth/youtube.readonly',
                 prompt: 'consent',
-                cookiepolicy: 'single_host_origin'
+                cookiepolicy: 'single_host_origin',
+                ux_mode: 'redirect'
             };
 
             auth2.signIn(options)
