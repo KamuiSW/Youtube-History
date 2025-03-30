@@ -129,23 +129,41 @@ async function fetchYouTubeHistory(accessToken) {
 // Drag and drop handlers
 dropZone.addEventListener('dragover', (e) => {
     e.preventDefault();
+    e.stopPropagation();
     dropZone.style.borderColor = '#4a90e2';
 });
 
-dropZone.addEventListener('dragleave', () => {
+dropZone.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     dropZone.style.borderColor = '#34495e';
 });
 
 dropZone.addEventListener('drop', (e) => {
     e.preventDefault();
+    e.stopPropagation();
     dropZone.style.borderColor = '#34495e';
+    
+    // Check if files were dropped
+    if (!e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) {
+        console.error('No files dropped');
+        return;
+    }
+    
     const file = e.dataTransfer.files[0];
+    console.log('File dropped:', file.name, file.type, file.size);
     handleFile(file);
 });
 
 // File input handler
 fileInput.addEventListener('change', (e) => {
+    if (!e.target || !e.target.files || !e.target.files.length) {
+        console.error('No file selected');
+        return;
+    }
+    
     const file = e.target.files[0];
+    console.log('File selected:', file.name, file.type, file.size);
     handleFile(file);
 });
 
@@ -222,16 +240,21 @@ function validateYouTubeHistory(data) {
 
 // File handling
 function handleFile(file) {
-    if (!file) return;
+    if (!file) {
+        console.error('No file provided');
+        return;
+    }
     
     // File type validation
     if (!file.name.endsWith('.json')) {
+        console.error('Invalid file type:', file.name);
         alert('Please upload a JSON file');
         return;
     }
 
     // File size validation (100MB limit)
     if (file.size > 100 * 1024 * 1024) {
+        console.error('File too large:', file.size);
         alert('File size exceeds 100MB limit. Please upload a smaller file.');
         return;
     }
@@ -241,8 +264,9 @@ function handleFile(file) {
     const reader = new FileReader();
     reader.onload = (e) => {
         try {
+            console.log('File read successfully');
             const data = JSON.parse(e.target.result);
-            console.log('File loaded successfully');
+            console.log('JSON parsed successfully');
             console.log('Data type:', typeof data);
             console.log('Is array:', Array.isArray(data));
             console.log('Data structure:', Object.keys(data));
@@ -250,14 +274,16 @@ function handleFile(file) {
             validateYouTubeHistory(data);
             processData(data);
         } catch (error) {
-            console.error('Error details:', error);
+            console.error('Error processing file:', error);
+            console.error('Error details:', error.message);
             console.error('Error stack:', error.stack);
-            alert(error.message || 'Error processing file. Please make sure it\'s a valid YouTube history file.');
+            alert('Error processing file. Please make sure it\'s a valid YouTube history file.');
             setLoading(false);
         }
     };
 
-    reader.onerror = () => {
+    reader.onerror = (error) => {
+        console.error('Error reading file:', error);
         alert('Error reading file. Please try again.');
         setLoading(false);
     };
@@ -283,48 +309,80 @@ function processData(data) {
 // Calculate statistics
 function calculateStats(data) {
     const stats = {
-        totalVideos: 0, // Changed from data.length to count actual videos
+        totalVideos: 0,
         totalTime: 0,
         channelCounts: {},
         hourlyDistribution: Array(24).fill(0),
         dailyTimeline: {}
     };
 
-    // Debug: Track unknown channel videos
+    // Debug: Track unknown channel videos with more details
     const unknownChannelVideos = [];
+    const channelDataLog = [];
 
-    data.forEach(item => {
-        // Skip ads and non-video content
+    data.forEach((item, index) => {
+        // Debug: Log all items before filtering
+        console.log(`Processing item ${index}:`, {
+            title: item.title,
+            url: item.titleUrl,
+            hasSubtitles: !!item.subtitles,
+            subtitlesLength: item.subtitles ? item.subtitles.length : 0
+        });
+
+        // Only skip ads, keep other content
         if (item.title && (
             item.title.includes('Viewed Ads On YouTube') ||
             item.title.includes('Watched Ad') ||
-            item.title.includes('Ad') ||
-            !item.titleUrl || // Skip items without URLs
-            !item.titleUrl.includes('youtube.com/watch') // Skip non-video URLs
+            item.title.includes('Ad')
         )) {
+            console.log(`Skipping ad: ${item.title}`);
             return;
         }
 
-        stats.totalVideos++; // Only increment for actual videos
+        stats.totalVideos++;
 
-        // Extract channel name from subtitles array, with better fallback handling
+        // Debug: Log all channel-related data
+        channelDataLog.push({
+            index,
+            title: item.title,
+            url: item.titleUrl,
+            hasSubtitles: !!item.subtitles,
+            subtitlesLength: item.subtitles ? item.subtitles.length : 0,
+            subtitlesData: item.subtitles,
+            rawData: item
+        });
+
+        // Extract channel name with detailed logging
         let channel = 'Unknown Channel';
         if (item.subtitles && item.subtitles[0]) {
             channel = item.subtitles[0].name;
+            console.log(`Found channel from subtitles: ${channel} for video: ${item.title}`);
         } else if (item.titleUrl) {
-            // Try to extract channel name from URL if available
+            // Try to extract channel from URL
             const channelMatch = item.titleUrl.match(/\/channel\/([^\/]+)/);
             if (channelMatch) {
                 channel = channelMatch[1];
+                console.log(`Found channel from URL: ${channel} for video: ${item.title}`);
+            } else {
+                // Try to extract from video title if it contains channel name
+                const titleMatch = item.title.match(/Watched (.+?) -/);
+                if (titleMatch) {
+                    channel = titleMatch[1];
+                    console.log(`Found channel from title: ${channel} for video: ${item.title}`);
+                }
             }
         }
         
-        // Debug: Log unknown channel videos
+        // Debug: Log unknown channel videos with more context
         if (channel === 'Unknown Channel') {
             unknownChannelVideos.push({
+                index,
                 title: item.title || 'No title',
                 url: item.titleUrl || 'No URL',
                 time: item.time || 'No timestamp',
+                hasSubtitles: !!item.subtitles,
+                subtitlesLength: item.subtitles ? item.subtitles.length : 0,
+                subtitlesData: item.subtitles,
                 rawData: item
             });
         }
@@ -341,21 +399,41 @@ function calculateStats(data) {
         stats.dailyTimeline[dateKey] = (stats.dailyTimeline[dateKey] || 0) + 1;
     });
 
-    // Debug: Log unknown channel statistics
-    if (unknownChannelVideos.length > 0) {
-        console.group('Unknown Channel Videos Analysis');
-        console.log(`Total unknown channel videos: ${unknownChannelVideos.length}`);
-        console.log(`Percentage of total videos: ${((unknownChannelVideos.length / stats.totalVideos) * 100).toFixed(2)}%`);
-        console.log('Sample of unknown channel videos:');
-        unknownChannelVideos.slice(0, 5).forEach(video => {
-            console.log('---');
-            console.log('Title:', video.title);
-            console.log('URL:', video.url);
-            console.log('Time:', video.time);
-            console.log('Raw data:', video.rawData);
+    // Debug: Log comprehensive analysis
+    console.group('Channel Data Analysis');
+    console.log('Total videos processed:', stats.totalVideos);
+    console.log('Total unknown channel videos:', unknownChannelVideos.length);
+    console.log('Percentage of unknown channels:', ((unknownChannelVideos.length / stats.totalVideos) * 100).toFixed(2) + '%');
+    
+    console.log('\nChannel Counts:');
+    Object.entries(stats.channelCounts)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 10)
+        .forEach(([channel, count]) => {
+            console.log(`${channel}: ${count} videos`);
         });
-        console.groupEnd();
-    }
+
+    console.log('\nSample of Unknown Channel Videos:');
+    unknownChannelVideos.slice(0, 5).forEach(video => {
+        console.log('\n---');
+        console.log('Title:', video.title);
+        console.log('URL:', video.url);
+        console.log('Has Subtitles:', video.hasSubtitles);
+        console.log('Subtitles Length:', video.subtitlesLength);
+        console.log('Subtitles Data:', video.subtitlesData);
+        console.log('Raw Data:', video.rawData);
+    });
+
+    console.log('\nChannel Data Log Sample:');
+    channelDataLog.slice(0, 5).forEach(log => {
+        console.log('\n---');
+        console.log('Index:', log.index);
+        console.log('Title:', log.title);
+        console.log('Has Subtitles:', log.hasSubtitles);
+        console.log('Subtitles Length:', log.subtitlesLength);
+        console.log('Subtitles Data:', log.subtitlesData);
+    });
+    console.groupEnd();
 
     // Calculate total time (assuming average video length of 10 minutes)
     stats.totalTime = stats.totalVideos * 10;
@@ -562,4 +640,15 @@ function triggerGoogleSignIn() {
         console.error('Google Sign-In not initialized');
         alert('Google Sign-In is not initialized. Please refresh the page and try again.');
     }
-} 
+}
+
+// Add error handling for Chart.js
+window.addEventListener('error', function(e) {
+    console.error('Global error:', e.message);
+    console.error('Error stack:', e.stack);
+});
+
+// Add console logging for debugging
+console.log('Script loaded and initialized');
+console.log('Drop zone element:', dropZone);
+console.log('File input element:', fileInput); 
