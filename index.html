@@ -4,12 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>YouTube History Analyzer</title>
-    <link rel="stylesheet" href="./styles.css">
+    <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Google Sign-In API -->
     <script src="https://apis.google.com/js/platform.js" async defer></script>
-    <script src="./config.js"></script>
-    <meta name="google-signin-client_id" content="">
+    <meta name="google-signin-client_id" content="760851876600-bl1vfhp6ci0cfootf10gi88i36s81k44.apps.googleusercontent.com">
     <!-- Add error handling for script loading -->
     <script>
         window.addEventListener('error', function(e) {
@@ -97,6 +96,9 @@
         </footer>
     </div>
 
-    <script src="./script.js"></script>
+    <!-- Load config first -->
+    <script src="config.js"></script>
+    <!-- Then load main script -->
+    <script src="script.js"></script>
 </body>
 </html> 
