@@ -215,7 +215,8 @@ async function fetchYouTubeHistory(accessToken) {
         
         do {
             console.log('Fetching YouTube history page...');
-            const response = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&myRating=like&maxResults=50&pageToken=${nextPageToken || ''}`, {
+            // Use the correct endpoint for watch history
+            const response = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&maxResults=50&pageToken=${nextPageToken || ''}`, {
                 headers: {
                     'Authorization': `Bearer ${accessToken}`,
                     'Accept': 'application/json'
@@ -223,6 +224,11 @@ async function fetchYouTubeHistory(accessToken) {
             });
             
             if (!response.ok) {
+                const errorData = await response.json();
+                console.error('YouTube API Error Response:', errorData);
+                if (response.status === 403) {
+                    throw new Error('Access denied. Please make sure you have granted access to your YouTube history.');
+                }
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             
