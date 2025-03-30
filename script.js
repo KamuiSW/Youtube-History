@@ -16,27 +16,34 @@ let channelDistributionChart = null;
 // Initialize Google Sign-In
 function initGoogleSignIn() {
     if (typeof gapi === 'undefined') {
-        console.error('Google API not loaded');
+        console.log('Google API not loaded yet, waiting...');
+        setTimeout(initGoogleSignIn, 100);
         return;
     }
     
     // Check if config exists
     if (!window.config || !window.config.GOOGLE_CLIENT_ID) {
-        console.error('Google Client ID not configured');
+        console.log('Config not loaded yet, waiting...');
+        setTimeout(initGoogleSignIn, 100);
         return;
     }
     
-    gapi.load('auth2', function() {
-        gapi.auth2.init({
-            client_id: window.config.GOOGLE_CLIENT_ID,
-            scope: 'https://www.googleapis.com/auth/youtube.readonly'
-        }).then(function(auth2) {
-            console.log('Google Sign-In initialized');
-        }).catch(function(error) {
-            console.error('Error initializing Google Sign-In:', error);
-            // Don't show error to user, just log it
+    try {
+        gapi.load('auth2', function() {
+            gapi.auth2.init({
+                client_id: window.config.GOOGLE_CLIENT_ID,
+                scope: 'https://www.googleapis.com/auth/youtube.readonly'
+            }).then(function(auth2) {
+                console.log('Google Sign-In initialized successfully');
+            }).catch(function(error) {
+                console.log('Google Sign-In initialization skipped:', error);
+                // Don't show error to user, just log it
+            });
         });
-    });
+    } catch (error) {
+        console.log('Google Sign-In initialization error:', error);
+        // Don't show error to user, just log it
+    }
 }
 
 // Set Google Client ID from config
@@ -72,7 +79,11 @@ function setLoading(isLoading) {
                 <div class="upload-option">
                     <h3>Sign in with Google</h3>
                     <p>Connect your Google account to analyze your history directly</p>
-                    <div class="g-signin2" data-onsuccess="onGoogleSignIn"></div>
+                    <button class="google-sign-in-button" onclick="triggerGoogleSignIn()">
+                        <img src="https://www.google.com/favicon.ico" alt="Google Logo" class="google-icon">
+                        Sign in with Google
+                    </button>
+                    <div class="g-signin2" data-onsuccess="onGoogleSignIn" style="display: none;"></div>
                 </div>
             </div>
         `;
@@ -470,6 +481,16 @@ function calculateStats(data) {
 
 // Update dashboard with statistics
 function updateDashboard(stats) {
+    // Add reset button if not already present
+    if (!document.getElementById('resetButton')) {
+        const resetButton = document.createElement('button');
+        resetButton.id = 'resetButton';
+        resetButton.className = 'reset-button';
+        resetButton.innerHTML = 'Analyze Another History';
+        resetButton.onclick = resetDashboard;
+        dashboard.insertBefore(resetButton, dashboard.firstChild);
+    }
+    
     // Update stat cards
     document.getElementById('totalVideos').textContent = stats.totalVideos.toLocaleString();
     document.getElementById('totalTime').textContent = `${Math.round(stats.totalTime / 60)} hours`;
@@ -648,6 +669,39 @@ function initializeCharts() {
     });
 }
 
+// Reset function
+function resetDashboard() {
+    // Hide dashboard
+    dashboard.style.display = 'none';
+    
+    // Reset charts
+    if (dailyTimelineChart) dailyTimelineChart.destroy();
+    if (hourlyDistributionChart) hourlyDistributionChart.destroy();
+    if (channelDistributionChart) channelDistributionChart.destroy();
+    
+    // Reset stats
+    document.getElementById('totalVideos').textContent = '0';
+    document.getElementById('totalTime').textContent = '0 hours';
+    document.getElementById('topChannel').textContent = 'N/A';
+    document.getElementById('busiestHour').textContent = '0:00';
+    
+    // Reset file input
+    fileInput.value = '';
+    
+    // Reset upload content
+    setLoading(false);
+    
+    // Sign out from Google if signed in
+    if (typeof gapi !== 'undefined' && gapi.auth2) {
+        const auth2 = gapi.auth2.getAuthInstance();
+        if (auth2 && auth2.isSignedIn.get()) {
+            auth2.signOut().then(() => {
+                console.log('Signed out from Google');
+            });
+        }
+    }
+}
+
 // Trigger Google Sign-In
 function triggerGoogleSignIn() {
     if (typeof gapi === 'undefined') {
@@ -655,17 +709,28 @@ function triggerGoogleSignIn() {
         return;
     }
 
-    const auth2 = gapi.auth2.getAuthInstance();
-    if (auth2) {
-        auth2.signIn().then(function(googleUser) {
-            onGoogleSignIn(googleUser);
-        }).catch(function(error) {
-            console.error('Error signing in:', error);
-            alert('Error signing in with Google. Please try again.');
-        });
-    } else {
-        console.error('Google Sign-In not initialized');
-        alert('Google Sign-In is not initialized. Please refresh the page and try again.');
+    try {
+        const auth2 = gapi.auth2.getAuthInstance();
+        if (auth2) {
+            auth2.signIn({
+                scope: 'https://www.googleapis.com/auth/youtube.readonly'
+            }).then(function(googleUser) {
+                onGoogleSignIn(googleUser);
+            }).catch(function(error) {
+                console.error('Error signing in:', error);
+                if (error.error === 'popup_closed_by_user') {
+                    // User closed the popup, don't show error
+                    return;
+                }
+                alert('Error signing in with Google. Please try again or use the JSON file upload option.');
+            });
+        } else {
+            console.error('Google Sign-In not initialized');
+            alert('Google Sign-In is not initialized. Please refresh the page and try again.');
+        }
+    } catch (error) {
+        console.error('Error triggering Google Sign-In:', error);
+        alert('Error signing in with Google. Please try again or use the JSON file upload option.');
     }
 }
 

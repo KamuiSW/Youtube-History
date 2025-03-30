@@ -252,4 +252,30 @@ footer a:hover {
         grid-template-columns: 1fr;
         gap: 1rem;
     }
+}
+
+.reset-button {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    margin-bottom: 1.5rem;
+    display: block;
+    width: 100%;
+    max-width: 300px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.reset-button:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-1px);
+}
+
+.reset-button:active {
+    transform: translateY(0);
 } 
