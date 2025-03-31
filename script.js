@@ -38,7 +38,7 @@ function initGoogleSignIn() {
         gapi.load('auth2', function() {
             gapi.auth2.init({
                 client_id: window.config.GOOGLE_CLIENT_ID,
-                scope: 'https://www.googleapis.com/auth/youtube.readonly',
+                scope: 'https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.force-ssl',
                 cookiepolicy: 'single_host_origin'
             }).then(function(auth2) {
                 console.log('Google Sign-In initialized successfully');
@@ -168,7 +168,7 @@ function triggerGoogleSignIn() {
         const auth2 = gapi.auth2.getAuthInstance();
         if (auth2) {
             const options = {
-                scope: 'https://www.googleapis.com/auth/youtube.readonly',
+                scope: 'https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.force-ssl',
                 prompt: 'consent'
             };
 
@@ -236,7 +236,7 @@ async function fetchYouTubeHistory(accessToken) {
         do {
             console.log('Fetching YouTube history page...');
             // Use the correct endpoint for watch history
-            const response = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&maxResults=50&pageToken=${nextPageToken || ''}`, {
+            const response = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&myRating=like&maxResults=50&pageToken=${nextPageToken || ''}`, {
                 headers: {
                     'Authorization': `Bearer ${accessToken}`,
                     'Accept': 'application/json'
