@@ -38,10 +38,8 @@ function initGoogleSignIn() {
         gapi.load('auth2', function() {
             gapi.auth2.init({
                 client_id: window.config.GOOGLE_CLIENT_ID,
-                scope: 'https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.force-ssl',
-                cookiepolicy: 'single_host_origin',
-                ux_mode: 'redirect',
-                redirect_uri: window.location.origin + window.location.pathname
+                scope: 'https://www.googleapis.com/auth/youtube.readonly',
+                cookiepolicy: 'single_host_origin'
             }).then(function(auth2) {
                 console.log('Google Sign-In initialized successfully');
             }).catch(function(error) {
@@ -170,10 +168,8 @@ function triggerGoogleSignIn() {
         const auth2 = gapi.auth2.getAuthInstance();
         if (auth2) {
             const options = {
-                scope: 'https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.force-ssl',
-                prompt: 'consent',
-                ux_mode: 'redirect',
-                redirect_uri: window.location.origin + window.location.pathname
+                scope: 'https://www.googleapis.com/auth/youtube.readonly',
+                prompt: 'consent'
             };
 
             console.log('Starting Google Sign-In process...');
@@ -933,6 +929,10 @@ function resetDashboard() {
 
 // Add error handling for Chart.js
 window.addEventListener('error', function(e) {
+    // Ignore CSP errors from Google's iframe
+    if (e.message && e.message.includes('cspreport')) {
+        return;
+    }
     console.error('Global error:', e.message);
     console.error('Error stack:', e.stack);
 });
