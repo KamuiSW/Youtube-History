@@ -15,12 +15,6 @@ let channelDistributionChart = null;
 
 // Initialize Google Sign-In
 function initGoogleSignIn() {
-    if (typeof google === 'undefined') {
-        console.log('Google API not loaded yet, waiting...');
-        setTimeout(initGoogleSignIn, 100);
-        return;
-    }
-    
     // Check if config exists
     if (!window.config || !window.config.GOOGLE_CLIENT_ID) {
         console.log('Config not loaded yet, waiting...');
@@ -29,24 +23,29 @@ function initGoogleSignIn() {
     }
     
     try {
-        google.accounts.id.initialize({
-            client_id: window.config.GOOGLE_CLIENT_ID,
-            callback: onGoogleSignIn,
-            scope: 'https://www.googleapis.com/auth/youtube.readonly'
-        });
-        console.log('Google Sign-In initialized successfully');
+        // Set the client ID in the meta tag
+        const metaTag = document.querySelector('meta[name="google-signin-client_id"]');
+        if (metaTag) {
+            metaTag.content = window.config.GOOGLE_CLIENT_ID;
+        }
+
+        // Initialize Google Sign-In
+        if (typeof google !== 'undefined' && google.accounts) {
+            google.accounts.id.initialize({
+                client_id: window.config.GOOGLE_CLIENT_ID,
+                callback: onGoogleSignIn,
+                scope: 'https://www.googleapis.com/auth/youtube.readonly'
+            });
+            console.log('Google Sign-In initialized successfully');
+        } else {
+            console.log('Google API not loaded yet, waiting...');
+            setTimeout(initGoogleSignIn, 100);
+        }
     } catch (error) {
         console.log('Google Sign-In initialization error:', error);
+        // Don't retry on initialization error
     }
 }
-
-// Set Google Client ID from config
-if (window.config && window.config.GOOGLE_CLIENT_ID) {
-    document.querySelector('meta[name="google-signin-client_id"]').content = window.config.GOOGLE_CLIENT_ID;
-}
-
-// Initialize Google Sign-In when the page loads
-window.addEventListener('load', initGoogleSignIn);
 
 // Initialize DOM elements and charts
 function initializeElements() {
