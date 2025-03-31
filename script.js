@@ -172,8 +172,10 @@ function triggerGoogleSignIn() {
                 prompt: 'consent'
             };
 
+            console.log('Starting Google Sign-In process...');
             auth2.signIn(options)
                 .then(function(googleUser) {
+                    console.log('Google Sign-In successful');
                     onGoogleSignIn(googleUser);
                 })
                 .catch(function(error) {
@@ -216,6 +218,7 @@ function onGoogleSignIn(googleUser) {
             setLoading(true);
             const accessToken = googleUser.getAuthResponse().access_token;
             console.log('Got access token, fetching YouTube history...');
+            console.log('Access token:', accessToken.substring(0, 10) + '...');
             fetchYouTubeHistory(accessToken);
         } else {
             console.error('User not signed in after successful sign-in');
@@ -236,7 +239,7 @@ async function fetchYouTubeHistory(accessToken) {
         do {
             console.log('Fetching YouTube history page...');
             // Use the correct endpoint for watch history
-            const response = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&myRating=like&maxResults=50&pageToken=${nextPageToken || ''}`, {
+            const response = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&maxResults=50&pageToken=${nextPageToken || ''}`, {
                 headers: {
                     'Authorization': `Bearer ${accessToken}`,
                     'Accept': 'application/json'
