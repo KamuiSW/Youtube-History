@@ -186,31 +186,10 @@ function onGoogleSignIn(response) {
         if (response.credential) {
             setLoading(true);
             console.log('Got credential, fetching YouTube history...');
-            // Use the credential to get an access token
-            fetch('https://oauth2.googleapis.com/token', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: new URLSearchParams({
-                    grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-                    assertion: response.credential
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.access_token) {
-                    console.log('Got access token, fetching YouTube history...');
-                    fetchYouTubeHistory(data.access_token);
-                } else {
-                    throw new Error('Failed to get access token');
-                }
-            })
-            .catch(error => {
-                console.error('Error getting access token:', error);
-                alert('Error completing sign-in. Please try again.');
-                setLoading(false);
-            });
+            
+            // The credential is already a JWT token, we can use it directly
+            console.log('Using credential directly as access token');
+            fetchYouTubeHistory(response.credential);
         } else {
             console.error('No credential received from Google Sign-In');
             alert('Error: Could not complete sign-in. Please try again.');
