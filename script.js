@@ -39,7 +39,9 @@ function initGoogleSignIn() {
             gapi.auth2.init({
                 client_id: window.config.GOOGLE_CLIENT_ID,
                 scope: 'https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.force-ssl',
-                cookiepolicy: 'single_host_origin'
+                cookiepolicy: 'single_host_origin',
+                ux_mode: 'redirect',
+                redirect_uri: window.location.origin + window.location.pathname
             }).then(function(auth2) {
                 console.log('Google Sign-In initialized successfully');
             }).catch(function(error) {
@@ -169,7 +171,9 @@ function triggerGoogleSignIn() {
         if (auth2) {
             const options = {
                 scope: 'https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.force-ssl',
-                prompt: 'consent'
+                prompt: 'consent',
+                ux_mode: 'redirect',
+                redirect_uri: window.location.origin + window.location.pathname
             };
 
             console.log('Starting Google Sign-In process...');
@@ -209,6 +213,23 @@ function triggerGoogleSignIn() {
         alert('Error signing in with Google. Please try again or use the JSON file upload option.');
     }
 }
+
+// Check for Google Sign-In response on page load
+window.addEventListener('load', function() {
+    // Check if we have a Google Sign-In response
+    const hash = window.location.hash;
+    if (hash && hash.includes('access_token')) {
+        // Extract the access token from the URL
+        const params = new URLSearchParams(hash.substring(1));
+        const accessToken = params.get('access_token');
+        if (accessToken) {
+            console.log('Found access token in URL, fetching YouTube history...');
+            fetchYouTubeHistory(accessToken);
+            // Clean up the URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }
+});
 
 // Google Sign-In callback
 function onGoogleSignIn(googleUser) {
