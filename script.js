@@ -15,7 +15,7 @@ let channelDistributionChart = null;
 
 // Initialize Google Sign-In
 function initGoogleSignIn() {
-    if (typeof gapi === 'undefined') {
+    if (typeof google === 'undefined') {
         console.log('Google API not loaded yet, waiting...');
         setTimeout(initGoogleSignIn, 100);
         return;
@@ -29,27 +29,14 @@ function initGoogleSignIn() {
     }
     
     try {
-        // Check if already initialized
-        if (gapi.auth2.getAuthInstance()) {
-            console.log('Google Sign-In already initialized');
-            return;
-        }
-
-        gapi.load('auth2', function() {
-            gapi.auth2.init({
-                client_id: window.config.GOOGLE_CLIENT_ID,
-                scope: 'https://www.googleapis.com/auth/youtube.readonly',
-                cookiepolicy: 'single_host_origin'
-            }).then(function(auth2) {
-                console.log('Google Sign-In initialized successfully');
-            }).catch(function(error) {
-                console.log('Google Sign-In initialization skipped:', error);
-                // Don't show error to user, just log it
-            });
+        google.accounts.id.initialize({
+            client_id: window.config.GOOGLE_CLIENT_ID,
+            callback: onGoogleSignIn,
+            scope: 'https://www.googleapis.com/auth/youtube.readonly'
         });
+        console.log('Google Sign-In initialized successfully');
     } catch (error) {
         console.log('Google Sign-In initialization error:', error);
-        // Don't show error to user, just log it
     }
 }
 
@@ -159,51 +146,18 @@ function setLoading(isLoading) {
 
 // Trigger Google Sign-In
 function triggerGoogleSignIn() {
-    if (typeof gapi === 'undefined') {
+    if (typeof google === 'undefined') {
         alert('Google API not loaded. Please refresh the page and try again.');
         return;
     }
 
     try {
-        const auth2 = gapi.auth2.getAuthInstance();
-        if (auth2) {
-            const options = {
-                scope: 'https://www.googleapis.com/auth/youtube.readonly',
-                prompt: 'consent'
-            };
-
-            console.log('Starting Google Sign-In process...');
-            auth2.signIn(options)
-                .then(function(googleUser) {
-                    console.log('Google Sign-In successful');
-                    onGoogleSignIn(googleUser);
-                })
-                .catch(function(error) {
-                    console.error('Error signing in:', error);
-                    // Handle specific error cases
-                    if (error && error.error) {
-                        switch (error.error) {
-                            case 'popup_closed_by_user':
-                                // User closed the popup, don't show error
-                                return;
-                            case 'access_denied':
-                                alert('Access denied. Please allow access to your YouTube history.');
-                                return;
-                            case 'immediate_failed':
-                                alert('Sign-in failed. Please try again.');
-                                return;
-                            default:
-                                alert('Error signing in with Google. Please try again or use the JSON file upload option.');
-                        }
-                    } else {
-                        // For unknown error types
-                        alert('Error signing in with Google. Please try again or use the JSON file upload option.');
-                    }
-                });
-        } else {
-            console.error('Google Sign-In not initialized');
-            alert('Google Sign-In is not initialized. Please refresh the page and try again.');
-        }
+        console.log('Starting Google Sign-In process...');
+        google.accounts.id.prompt();
+        google.accounts.id.renderButton(
+            document.querySelector('.google-sign-in-button'),
+            { theme: 'outline', size: 'large', width: '100%' }
+        );
     } catch (error) {
         console.error('Error triggering Google Sign-In:', error);
         alert('Error signing in with Google. Please try again or use the JSON file upload option.');
@@ -228,22 +182,44 @@ window.addEventListener('load', function() {
 });
 
 // Google Sign-In callback
-function onGoogleSignIn(googleUser) {
+function onGoogleSignIn(response) {
     try {
-        const auth2 = gapi.auth2.getAuthInstance();
-        if (auth2.isSignedIn.get()) {
+        if (response.credential) {
             setLoading(true);
-            const accessToken = googleUser.getAuthResponse().access_token;
-            console.log('Got access token, fetching YouTube history...');
-            console.log('Access token:', accessToken.substring(0, 10) + '...');
-            fetchYouTubeHistory(accessToken);
+            console.log('Got credential, fetching YouTube history...');
+            // Use the credential to get an access token
+            fetch('https://oauth2.googleapis.com/token', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+                    assertion: response.credential
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.access_token) {
+                    console.log('Got access token, fetching YouTube history...');
+                    fetchYouTubeHistory(data.access_token);
+                } else {
+                    throw new Error('Failed to get access token');
+                }
+            })
+            .catch(error => {
+                console.error('Error getting access token:', error);
+                alert('Error completing sign-in. Please try again.');
+                setLoading(false);
+            });
         } else {
-            console.error('User not signed in after successful sign-in');
+            console.error('No credential received from Google Sign-In');
             alert('Error: Could not complete sign-in. Please try again.');
         }
     } catch (error) {
         console.error('Error in onGoogleSignIn:', error);
         alert('Error completing sign-in. Please try again.');
+        setLoading(false);
     }
 }
 
@@ -917,13 +893,11 @@ function resetDashboard() {
     setLoading(false);
     
     // Sign out from Google if signed in
-    if (typeof gapi !== 'undefined' && gapi.auth2) {
-        const auth2 = gapi.auth2.getAuthInstance();
-        if (auth2 && auth2.isSignedIn.get()) {
-            auth2.signOut().then(() => {
-                console.log('Signed out from Google');
-            });
-        }
+    if (typeof google !== 'undefined' && google.accounts) {
+        google.accounts.id.disableAutoSelect();
+        google.accounts.id.revoke(response.credential, () => {
+            console.log('Signed out from Google');
+        });
     }
 }
 
